@@ -1,0 +1,3 @@
+{
+    "python.analysis.extraPaths": ["./external/px4-launch"]
+}
