@@ -1,4 +1,4 @@
-# Simulation of a braid MPC controller on the ATMOS robots
+# Simulation of a braid MPC controller on a set of ATMOS robots
 
 ## Install
 The project has quite a bit of dependencies, such as ros2, gazebo, urxce, and qgroundcotnrol. Instructions for the complete setup of the control and simulation stack can be found on the original repositories of the submodules, or [here](dev/dependencies-setup.md). 
@@ -7,7 +7,7 @@ To be built, the repo expects the following packages are also in your
 `px4_ws/src/`:
 - [`px4_msgs`](https://github.com/PX4/px4_msgs)
 - [`px4_mpc`](https://github.com/gbattocletti/px4-mpc) 
-- [`px4-world_publisher`](https://github.com/gbattocletti/px4-world-publisher)
+- [`px4_-_world_publisher`](https://github.com/gbattocletti/px4-world-publisher)
 Clone them before running the build step below:
 ```sh
 cd ~px4_ws/src/
