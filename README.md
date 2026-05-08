@@ -1,4 +1,4 @@
-# Simulation of a braid MPC controller on a ATMOS robots
+# Simulation of a braid MPC controller on the ATMOS robots
 
 ## Install
 The project has quite a bit of dependencies, such as ros2, gazebo, urxce, and qgroundcotnrol. Instructions for the complete setup of the control and simulation stack can be found on the original repositories of the submodules, or [here](dev/dependencies-setup.md). 
