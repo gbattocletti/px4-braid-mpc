@@ -1,19 +1,35 @@
-# Braid sim
+# Simulation of braid MPC controller on ATMOS robots
 
 ## Install
-The project has quite a bit of dependencies, such as ros2, gazebo, urxce, and qgroundcotnrol. Instructions for the complete setup of the control and simulation stack can be found on the original repositories of the submodules, or [here](dev/simulation-setup.md). Finally, download the custom publisher of the `kthspacelab` geometries for visualization in rviz:
+The project has quite a bit of dependencies, such as ros2, gazebo, urxce, and qgroundcotnrol. Instructions for the complete setup of the control and simulation stack can be found on the original repositories of the submodules, or [here](dev/dependencies-setup.md). 
+
+To be built, the repo expects the following packages are also in your
+`px4_ws/src/`:
+- [`px4_msgs`](https://github.com/PX4/px4_msgs)
+- [`px4_mpc`](https://github.com/gbattocletti/px4-mpc) 
+- [`world_publisher`](https://github.com/gbattocletti/px4-world-publisher)
+Clone them before running the build step below:
 ```sh
 cd ~px4_ws/src/
-git clone git@github.com:gbattocletti/px4-world-publisher.git
-colcon build --packages-select px-world-publisher
+git clone https://github.com/PX4/px4_msgs.git
+git clone https://github.com/gbattocletti/px4-mpc.git
+git clone https://github.com/gbattocletti/px4-world-publisher.git
 ```
-After setting up all the required dependencies, clone and build the repo:
+Then clone this repo and install the python submodules:
 ```sh
-cd ~px4_ws/src/
 git clone --recurse-submodules git@github.com:gbattocletti/px4-braid-mpc.git
 pip install -e px4_braid_mpc/external/braid-controller
-colcon build --packages-select px4_braid_mpc --symlink-install
+git config submodule.recurse true  # recommended to keep submodules in sync when pulling
 ```
+Note that there are two submodules, but `px4-launch` is used as plain scripts and does not need to be installed. `braid-controller` is a pip package, which needs to be installed.
+
+Finally, build the whole workspace:
+```sh
+cd ~/px4_ws
+colcon build --symlink-install
+source install/setup.bash
+```
+
 
 ## Project structure
 The project is structured as follows:
