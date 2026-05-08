@@ -8,6 +8,9 @@ The robots instances are launched in a byobu session named "atmos".
 
 Use --headless to start Gazebo without its GUI (useful when you want
 to visualize through rviz instead). Use --kill to tear it all down.
+
+NOTE: this file needs to be made executable (chmod +x launch_sim.py) to be run directly.
+Otherwise, it can be run with "python3 launch_sim.py" from the command line.
 """
 
 import sys

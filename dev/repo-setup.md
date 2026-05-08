@@ -11,9 +11,3 @@ git submodule add https://github.com/gbattocletti/px4-launch.git external/px4-la
 git submodule add https://github.com/gbattocletti/braid-controller.git external/braid-controller
 git config submodule.recurse true   # to automatically pull changes in submodules
 ```
-NOTE: To remove a submodule:
-```sh
-git submodule deinit -f external/<name>
-git rm -f external/<name>
-rm -rf .git/modules/external/<name>
-```	
