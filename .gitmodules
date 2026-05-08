@@ -1,0 +1,6 @@
+[submodule "external/px4-launch"]
+	path = external/px4-launch
+	url = https://github.com/gbattocletti/px4-launch.git
+[submodule "external/braid-controller"]
+	path = external/braid-controller
+	url = git@github.com:gbattocletti/braid-controller.git
