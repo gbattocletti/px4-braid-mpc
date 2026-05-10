@@ -1,24 +1,25 @@
 # Simulation of a braid MPC controller on a set of ATMOS robots
 
 ## Install
-The project has quite a bit of dependencies, such as ros2, gazebo, urxce, and qgroundcotnrol. Instructions for the complete setup of the control and simulation stack can be found on the original repositories of the submodules, or [here](dev/dependencies-setup.md). 
+The project has quite a few dependencies, such as ros2, gazebo, urxce, and qgroundcotnrol. Instructions for the complete setup of the control and simulation stack can be found on the original repositories of the submodules, or [here](dev/dependencies-setup.md). 
 
 To be built, the repo expects the following packages are also in your
 `px4_ws/src/`:
 - [`px4_msgs`](https://github.com/PX4/px4_msgs)
-- [`px4_mpc`](https://github.com/gbattocletti/px4-mpc) 
-- [`px4_-_world_publisher`](https://github.com/gbattocletti/px4-world-publisher)
+- [`px4-mpc`](https://github.com/gbattocletti/px4-mpc) 
+- [`px4-world-publisher`](https://github.com/gbattocletti/px4-world-publisher)
 Clone them before running the build step below:
 ```sh
-cd ~px4_ws/src/
+cd ~/px4_ws/src
 git clone https://github.com/PX4/px4_msgs.git
 git clone https://github.com/gbattocletti/px4-mpc.git
 git clone https://github.com/gbattocletti/px4-world-publisher.git
 ```
 Then clone this repo and install the python submodules:
 ```sh
+cd ~/px4_ws/src
 git clone --recurse-submodules git@github.com:gbattocletti/px4-braid-mpc.git
-pip install -e px4_braid_mpc/external/braid-controller
+pip install -e px4-braid-mpc/external/braid-controller
 git config submodule.recurse true  # recommended to keep submodules in sync when pulling
 ```
 Note that there are two submodules, but `px4-launch` is used as plain scripts and does not need to be installed. `braid-controller` is a pip package, which needs to be installed.
@@ -26,7 +27,7 @@ Note that there are two submodules, but `px4-launch` is used as plain scripts an
 Finally, build the whole workspace:
 ```sh
 cd ~/px4_ws
-colcon build --symlink-install
+colcon build --symlink-install  # --packages-select px4_braid_mpc for incremental build
 source install/setup.bash
 ```
 
