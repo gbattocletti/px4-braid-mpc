@@ -317,7 +317,7 @@ pip install -e . # to reinstall the acados python interface
 
 
 ### PX4-MPC 
-The repo contains an example of an MPC controller communicating with the PX4 flight controller over the microrxce dds bridge. To use it, clone the repo with the mpc simulations
+The repo contains an example of an MPC controller communicating with the PX4 flight controller over the microxrce dds bridge. To use it, clone the repo with the mpc simulations
 ```sh
 mkdir -p ~/px4_ws/src # likely already existing 
 cd ~/px4_ws/src

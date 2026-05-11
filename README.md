@@ -28,7 +28,7 @@ More details on the launch scripts can be found in the [launch folder](launch/RE
 
 
 ## Installation
-The project has quite a few dependencies, such as ros2, gazebo, microrxce, and QGroundControl. Instructions for the complete setup of the control and simulation stack can be found on the original repositories of the submodules (best place to start is [here](https://atmos.discower.io/pages/Simulation/)), or in this [notes file](docs/dependencies-setup.md). 
+The project has quite a few dependencies, such as ros2, gazebo, microxrce, and QGroundControl. Instructions for the complete setup of the control and simulation stack can be found on the original repositories of the submodules (best place to start is [here](https://atmos.discower.io/pages/Simulation/)), or in this [notes file](docs/dependencies-setup.md). 
 
 To be built, the repo expects the following packages to be already cloned in the
 `px4_ws/src/` folder:

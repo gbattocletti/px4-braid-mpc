@@ -8,7 +8,7 @@ The repo provides two relevant launch scripts:
 	- A ros2 node for the high_level_controller, communicating with the px4 flight controllers and the px4-mpc nodes
 2. `rviz.launch.py`: starts a rviz session for a lightweight visualization of the simulation. The script also launches a `px4-world-publisher` node that allows displaying the world geometries in rviz
 
-The controllers also need an instance of microrxce dds bridge to be able to exchange data with the px4 flight controllers (both in simulation and real world experiments).
+The controllers also need an instance of microxrce dds bridge to be able to exchange data with the px4 flight controllers (both in simulation and real world experiments).
 Additionally, the robots must be set to offboard mode and armed via qgroundcontrol. 
 
 Example commands for the controllers launch script:
