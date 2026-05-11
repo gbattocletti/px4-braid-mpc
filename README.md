@@ -4,7 +4,8 @@ Simulation of the [MPC-based distributed braid controller](https://github.com/gb
 
 
 ## Usage
-A set of [launch scripts](launch/) are made available to launch all the required components to simulate the motion of the spacecrafts. 
+A set of [launch scripts](launch/) are made available to launch all the required components to simulate the motion of the spacecrafts. An overview of the components launched by each script and of the way in which they interact with each other is shown in [this schematic](docs/architecture.drawio).
+
 To launch the simulation, first launch the mircoxrce dds bridge:
 ```sh
 micro-xrce-dds-agent udp4 -p 8888
