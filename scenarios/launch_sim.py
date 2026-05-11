@@ -14,22 +14,33 @@ Otherwise, it can be run with "python3 launch_sim.py" from the command line.
 """
 
 import sys
+import yaml
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "external" / "px4-launch"))
+root = Path(__file__).parent.parent
+sys.path.insert(0, str(root / "external" / "px4-launch"))
 from px4_sitl_launcher import launch, Vehicle
 
+# Read config parameters
+with open(root / "config" / "sim_params.yaml", "r", encoding="utf-8") as f:
+    params = yaml.safe_load(f)
+
+# Build list of vehicles to be launched in the simulation
 VEHICLES = [
-    Vehicle(name="atmos_1", model="gz_atmos", pose=(1, 0, 1, 0, 0, 0)),
-    Vehicle(name="atmos_2", model="gz_atmos", pose=(2, 0, 1, 0, 0, 0)),
-    Vehicle(name="atmos_3", model="gz_atmos", pose=(3, 0, 1, 0, 0, 0)),
+    Vehicle(
+        name=ns,
+        model="gz_atmos",
+        pose=tuple(params["initial_states"][ns]),
+    )
+    for ns in params["namespaces"]
 ]
 
+# Launch the simulation with the defined vehicles and parameters
 if __name__ == "__main__":
     launch(
         vehicles=VEHICLES,
         world="kthspacelab",
         session="atmos",
-        multiplexer="byobu",  # multiplexer backend ("tmux" or "byobu"),
+        multiplexer="byobu-tmux",  # multiplexer backend ("tmux" or "byobu-tmux"),
         headless=False,  # CLI --headless / --no-headless overrides this,
     )
