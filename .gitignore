@@ -1,3 +1,7 @@
+# Custom folders
+.dev
+
+# ROS2 build
 devel/
 logs/
 build/
