@@ -1,0 +1,27 @@
+# Simulation parameters shared between launch scripts
+
+# Namespaces of the three robots
+namespaces:
+  - atmos_1
+  - atmos_2
+  - atmos_3
+
+# Initial and final poses [x, y, z, roll, pitch, yaw] in metres / radians
+initial_states:
+  atmos_1: [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+  atmos_2: [2.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+  atmos_3: [3.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+goal_states:
+  atmos_1: [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+  atmos_2: [2.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+  atmos_3: [3.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+
+# PX4-MPC settings forwarded to mpc_spacecraft_launch.py for each instance
+px4_mpc:
+  mode: wrench
+  setpoint_from_rviz: false
+
+# High-level controller dummy parameters.
+braid_mpc:
+  publish_rate_hz: 1.0
+  hover_z: 1.0  # dummy entry -- hover initial location
