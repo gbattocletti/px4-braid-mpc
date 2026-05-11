@@ -248,8 +248,8 @@ Optionally, extract the app to be able to create an alias and launch it from any
 ```sh
 chmod +x QGroundControl-x86_64.AppImage
 ./QGroundControl-x86_64.AppImage --appimage-extract
-./squashfs-root/AppRun  # launches the app
-mv squashfs-root/QGroundControl/  # change of folder name
+mv squashfs-root QGroundControl  # change of folder name
+./QGroundControl/AppRun  # launches the app
 echo '#!/bin/bash
 exec ~/<path-to-QGroundControl/QGroundControl/AppRun "$@"' > ~/.local/bin/qgroundcontrol  # NOTE: copy from echo... until here all together + put the correct path in the exec line
 chmod +x ~/.local/bin/qgroundcontrol
@@ -289,7 +289,7 @@ In order to control the PX4 from a program running on the laptop (e.g. a python 
 ### Acados
 - install [acados](https://docs.acados.org/installation/) (required by the mpc in px4_mpc, can be skipped if that MPC module is not used)
 ```sh
-cd ~/Documents/software
+cd ~
 git clone https://github.com/acados/acados.git
 cd acados
 git submodule update --recursive --init
@@ -300,7 +300,7 @@ make install -j4
 ```
 add acados to LD_LIBRARY_PATH
 ```sh
-export ACADOS_SOURCE_DIR=$HOME/Documents/software/acados
+export ACADOS_SOURCE_DIR=$HOME/acados
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ACADOS_SOURCE_DIR/lib
 ```
 Install the acados python interface https://docs.acados.org/python_interface/index.html

@@ -1,21 +1,42 @@
 # Simulation of a braid MPC controller on a set of ATMOS robots
 
-## Install
-The project has quite a few dependencies, such as ros2, gazebo, urxce, and qgroundcotnrol. Instructions for the complete setup of the control and simulation stack can be found on the original repositories of the submodules, or [here](docs/dependencies-setup.md). 
+Simulation of the [MPC-based distributed braid controller](https://github.com/gbattocletti/braid-controller) on a multi-agent space-based tethered robot system. The simulation is based on the [DISCOWER ATMOS](https://atmos.discower.io/) platform, which is also used for the real-world experiments.
 
-To be built, the repo expects the following packages are also in your
-`px4_ws/src/`:
+
+## Usage
+A set of [launch scripts](launch/) are made available to launch all the required components to simulate the motion of the spacecrafts. 
+To launch the simulation, first launch the mircoxrce dds bridge:
+```sh
+micro-xrce-dds-agent udp4 -p 8888
+```
+Then, launch the simulation and PX4 flight controllers from the launch scripts with:
+```sh
+cd ~/px4_ws/src/px4_braid_mpc/scenarios
+./launch_sim.py
+```
+Finally, launch the mpc and controller:
+```sh
+ros2 launch px4_braid_mpc controller.launch.py
+```
+The most convenient way to arm the spacecrafts and start the simulation is to then open QGroundControl and manually set the flight mode to `offboard`, then arm the flyers.
+
+Optionally, an rviz session for visualization of the reference frames can be launched with:
+```sh
+ros2 launch px4_braid_mpc rviz.launch.py
+```
+More details on the launch scripts can be found in the [launch folder](launch/README.md).
+
+
+## Installation
+The project has quite a few dependencies, such as ros2, gazebo, microrxce, and QGroundControl. Instructions for the complete setup of the control and simulation stack can be found on the original repositories of the submodules (best place to start is [here](https://atmos.discower.io/pages/Simulation/)), or in this [notes file](docs/dependencies-setup.md). 
+
+To be built, the repo expects the following packages to be already cloned in the
+`px4_ws/src/` folder:
 - [`px4_msgs`](https://github.com/PX4/px4_msgs)
 - [`px4-mpc`](https://github.com/gbattocletti/px4-mpc) 
 - [`px4-world-publisher`](https://github.com/gbattocletti/px4-world-publisher)
-Clone them before running the build step below:
-```sh
-cd ~/px4_ws/src
-git clone https://github.com/PX4/px4_msgs.git
-git clone https://github.com/gbattocletti/px4-mpc.git
-git clone https://github.com/gbattocletti/px4-world-publisher.git
-```
-Then clone this repo and install the python submodules:
+
+Clone this repo and install the python submodules:
 ```sh
 cd ~/px4_ws/src
 git clone --recurse-submodules git@github.com:gbattocletti/px4-braid-mpc.git
@@ -32,70 +53,42 @@ source install/setup.bash
 ```
 
 
-## Project structure
-The project is structured as follows:
+## Repository structure
+The repository is structured as follows:
 ```
 px4_braid_mpc/
     │
     ├── package.xml                         # ROS package metadata
     ├── setup.py                            # ament_python build
     ├── setup.cfg
-    ├── pyproject.toml
     ├── README.md
     ├── LICENSE
+    ├── .pylintrc
     ├── .gitmodules
     ├── .gitignore
     │
     ├── resource/
     │   └── px4_braid_mpc                   # empty marker file
     │
-    ├── px4_braid_mpc/                      # python package (the nodes live here)
+    ├── px4_braid_mpc/                      # python package (ros2 node)
     │   ├── __init__.py
-    │   ├── high_level_controller.py        # entry point for the px4_braid_mpc node
-    │   └── (any helpers)
-    │
-	├── scenarios/                          # gazebo simulation launchers
-    │   └── launch_braid_sim.py             # 3 x px4 + gazebo
-    │
-    ├── launch/                             # ROS launch files
-    │   └── braid_sim_launch.py             # 3 x px4-mpcs + high-level-controller (this repo) + px4-world-publisher + rviz
+    │   ├── braid_mpc.py
+    │   └── (TODO: helpers)
     │
     ├── config/
-    │   ├── vehicles.yaml                   # names, poses, world
-    │   └── braid.rviz
+    │   ├── config.rviz
+    │   └── sim_params.yaml                 # names, world, initial and final states
+    │
+    ├── scenarios/
+    │   └── launch_sim.py                   # 3 x px4 + gazebo
+    │
+    ├── launch/                             # ros launch scripts
+    │   ├── controller.launch.py            # 3 x px4-mpcs + high-level-controller 
+    │   └── rviz.launch.py                  # px4-world-publisher + rviz
     │
     └── external/
-        ├── px4-launch/                     # custom fork of px4-launch (for scenarios)
-        └── braid-controller/               # braid-controller repo (for the high-level-controller)
-```
-
-## Launcher files
-The repo provides two types of launch scripts: 
-1. A script to launch the simulation environment, which is composed of:
-	- A gazebo simulation (potentially headless)
-	- Three px4 flight controllers (one for each robot)
-2. A script to launch the controller stack, which is composed of:
-	- Three px4-mpc nodes, acting as low-level controller and communicating directly with the px4 flight controllers  
-	- A ros2 node for the high_level_controller, communicating with the px4 flight controllers and the px4-mpc nodes
-	- A rviz session for a lightweight visualization of the simulation
-In addition to these two files, the simulation stack requires the microrxce dds bridge to enable the exchange of data between the px4 flight controllers and ros2, and qgroundcontrol to arm the robots in offboard mode. 
-
-Example commands for the simulation launch script:
-```sh
-./launch_braid_sim.py                 # GUI gazebo
-./launch_braid_sim.py --headless      # no gazebo GUI
-./launch_braid_sim.py --kill          # tear down
-byobu attach -t braid_sim             # attach
-```
-
-Example commands for the controllers launch script:
-```sh
-
-```
-
-Example of the complete simulation launch sequence:
-```sh
-
+        ├── px4-launch/                     # custom fork of px4-launch
+        └── braid-controller/               # braid-controller repo 
 ```
 
 
