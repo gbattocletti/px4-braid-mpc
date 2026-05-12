@@ -19,20 +19,6 @@ def generate_launch_description() -> LaunchDescription:
 
     # Extract relevant variables
     namespaces: list[str] = params["namespaces"]
-    mpc_mode: str = params["px4_mpc"]["mode"]
-    mpc_setpoint_from_rviz: bool = params["px4_mpc"]["setpoint_from_rviz"]
-
-    # Parse params
-    if mpc_mode != "wrench":
-        raise NotImplementedError(
-            f"Invalid mode for PX4-MPC: {mpc_mode}. ",
-            "Modes other than 'wrench' are not implemented yet.",
-        )
-    if mpc_setpoint_from_rviz is True:
-        raise NotImplementedError(
-            "RViz setpoint input is not implemented yet. ",
-            "Set 'setpoint_from_rviz' to false in sim_params.yaml.",
-        )
 
     # Initialize actions list
     actions: list[Node] = []
@@ -48,8 +34,9 @@ def generate_launch_description() -> LaunchDescription:
                 output="screen",
                 emulate_tty=True,
                 parameters=[
-                    {"mode": mpc_mode},
-                    {"setpoint_from_rviz": mpc_setpoint_from_rviz},
+                    {"mode": "wrench"},
+                    {"setpoint_from_rviz": False},
+                    {"target_type": "trajectory"},
                 ],
             ),
         )

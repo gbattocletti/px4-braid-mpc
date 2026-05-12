@@ -16,11 +16,6 @@ goal_states:
   atmos_2: [2.0, 0.0, 1.0, 0.0, 0.0, 0.0]
   atmos_3: [3.0, 0.0, 1.0, 0.0, 0.0, 0.0]
 
-# PX4-MPC settings forwarded to mpc_spacecraft_launch.py for each instance
-px4_mpc:
-  mode: wrench
-  setpoint_from_rviz: false
-
 # High-level controller dummy parameters.
 braid_mpc:
   publish_rate_hz: 1.0
