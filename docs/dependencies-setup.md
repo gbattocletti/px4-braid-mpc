@@ -505,7 +505,10 @@ export PX4_Autopilot_Dir=~/PX4-Autopilot
 export ACADOS_SOURCE_DIR=$HOME/acados
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ACADOS_SOURCE_DIR/lib
 alias microxrce="$HOME/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent"
-alias killgz='pkill -9 -f "ign gazebo"; pkill -9 -f "gz sim"; pkill -9 -f gazebo; pkill -9 -f "bin/px4"'
-alias killsim='~/px4-launch/launch_single_atmos.py --kill; ~/px4-launch/launch_multi_atmos.py --kill; killgz'
+alias killgz='pkill -9 -f "ign gazebo|gz sim|gazebo|bin/px4" 2>/dev/null; true'
+alias killros='pkill -f "px4_offboard|rviz2|boundary_publisher|micro-xrce|visualizer" 2>/dev/null; sleep 1; pkill -9 -f "px4_offboard|rviz2|boundary_publisher|micro-xrce|visualizer" 2>/dev/null; true'
+alias killsim='~/px4_ws/src/px4-braid-mpc/scenarios/launch_sim.py --kill; killgz; killros'
+alias killatmos='killsim; killros; killgz'
+
 ```
 Lines 3--5 have been added since on wsl I had some issues with the window compositor, so that the  mouse was going under the windows launched from wsl (e.g., Gazebo). This issue and fix may be very setup-related (depending e.g. on the availability of a discrete GPU)
