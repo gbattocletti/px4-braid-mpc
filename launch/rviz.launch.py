@@ -49,6 +49,7 @@ def generate_launch_description() -> LaunchDescription:
     actions.append(
         Node(
             package="px4_world_publisher",
+            namespace="",
             executable="boundary_publisher",
             name="px4_world_publisher",
             output="screen",
@@ -60,6 +61,7 @@ def generate_launch_description() -> LaunchDescription:
     actions.append(
         Node(
             package="rviz2",
+            namespace="",
             executable="rviz2",
             name="rviz2",
             arguments=["-d", str(rviz_config)],
