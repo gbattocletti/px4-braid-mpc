@@ -1,6 +1,11 @@
 # Custom folders
 .dev
 
+# drawio
+*.drawio.dtmp
+*.drawio.bkp
+*.drawio.svg.bkp
+
 # ROS2 build
 devel/
 logs/
