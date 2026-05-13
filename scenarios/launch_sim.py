@@ -14,12 +14,13 @@ Otherwise, it can be run with "python3 launch_sim.py" from the command line.
 """
 
 import sys
-import yaml
 from pathlib import Path
+
+import yaml
 
 root = Path(__file__).parent.parent
 sys.path.insert(0, str(root / "external" / "px4-launch"))
-from px4_sitl_launcher import launch, Vehicle
+from px4_sitl_launcher import Vehicle, launch
 
 # Read config parameters
 with open(root / "config" / "sim_params.yaml", "r", encoding="utf-8") as f:
