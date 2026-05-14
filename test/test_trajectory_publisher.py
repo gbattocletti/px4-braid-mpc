@@ -17,7 +17,7 @@ Run:
     ./test_trajectory_publisher.py
 or:
     python3 test_trajectory_publisher.py
-    
+
 Then check the topics:
     ros2 topic echo /atmos_1/px4_mpc/reference_trajectory
 
@@ -53,9 +53,9 @@ DT = 5.0 / N  # time step between trajectory points (seconds), matches Tf=5.0
 # Per-robot hover setpoints: namespace -> (x, y, z, qw, qx, qy, qz).
 # Different positions make the three subscribers visually distinguishable.
 SETPOINTS = {
-    "atmos_1": (0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0),
-    "atmos_2": (1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0),
-    "atmos_3": (0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0),
+    "atmos_1": (0.4, -0.8, 0.0, 0.0, 0.0, 0.0, 1.0),
+    "atmos_2": (1.4, -0.8, 0.0, 0.0, 0.0, 0.0, 1.0),
+    "atmos_3": (1.4, 0.2, 0.0, 0.0, 0.0, 0.707, 0.707),
 }
 
 # Publishing rate (Hz). The reference trajectory does not need to be high-rate, since
