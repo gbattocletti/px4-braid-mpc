@@ -6,11 +6,12 @@ Starts 3 atmos free-flyers in the kthspacelab world with their respective namesp
 px4 SITL instances. The world is launched in Gazebo, and the robots are spawned in it.
 The robots instances are launched in a byobu session named "atmos".
 
-Use --headless to start Gazebo without its GUI (useful when you want
-to visualize through rviz instead). Use --kill to tear it all down.
-
+Usage:
+    cd ~/px4_ws/src/px4-braid-mpc/scenarios
+    ./launch_sim.py
+Use --headless to start Gazebo without its GUI. Use --kill to tear it all down.
 NOTE: this file needs to be made executable (chmod +x launch_sim.py) to be run directly.
-Otherwise, it can be run with "python3 launch_sim.py" from the command line.
+Otherwise, it needs to be run with "python3 launch_sim.py".
 """
 
 import sys
@@ -43,5 +44,5 @@ if __name__ == "__main__":
         world="kthspacelab",
         session="atmos",
         multiplexer="byobu-tmux",  # multiplexer backend ("tmux" or "byobu-tmux"),
-        headless=False,  # CLI --headless / --no-headless overrides this,
+        headless=True,  # CLI --headless / --no-headless overrides this,
     )
