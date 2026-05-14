@@ -53,15 +53,4 @@ def generate_launch_description() -> LaunchDescription:
     #     )
     # )
 
-    # Temporary publisher node (for development/testing)
-    actions.append(
-        Node(
-            package="braid_controller",
-            executable="test_trajectory_publisher",
-            name="test_trajectory_publisher",
-            output="screen",
-            emulate_tty=True,
-        )
-    )
-
     return LaunchDescription(actions)
