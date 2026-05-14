@@ -118,7 +118,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /atmos_1/px4_mpc/setpoint_trajectory
+        Value: /atmos_1/reference_path
       Value: true
 
     # ============================== atmos_2 (green) ============================
@@ -184,7 +184,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /atmos_2/px4_mpc/setpoint_trajectory
+        Value: /atmos_2/reference_path
       Value: true
 
     # ============================== atmos_3 (blue) =============================
@@ -250,7 +250,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /atmos_3/px4_mpc/setpoint_trajectory
+        Value: /atmos_3/reference_path
       Value: true
 
   Enabled: true
