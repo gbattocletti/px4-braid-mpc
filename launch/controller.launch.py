@@ -37,17 +37,28 @@ def generate_launch_description() -> LaunchDescription:
                 parameters=[
                     {"mode": "wrench"},
                     {"setpoint_from_rviz": False},
-                    {"target_type": "trajectory"},
+                    {"target_mode": "trajectory"},
                 ],
             ),
         )
 
     # Append launch action for high-level controller (single node, manages all robots)
+    # actions.append(
+    #     Node(
+    #         package="px4_braid_mpc",
+    #         executable="high_level_controller",
+    #         name="high_level_controller",
+    #         output="screen",
+    #         emulate_tty=True,
+    #     )
+    # )
+
+    # Temporary publisher node (for development/testing)
     actions.append(
         Node(
-            package="px4_braid_mpc",
-            executable="high_level_controller",
-            name="high_level_controller",
+            package="braid_controller",
+            executable="test_trajectory_publisher",
+            name="test_trajectory_publisher",
             output="screen",
             emulate_tty=True,
         )
