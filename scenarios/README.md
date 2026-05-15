@@ -9,5 +9,5 @@ Example commands for the simulation launch script:
 ./launch_braid_sim.py                 # GUI gazebo
 ./launch_braid_sim.py --headless      # no gazebo GUI
 ./launch_braid_sim.py --kill          # tear down
-byobu attach -t braid_sim             # attach
+byobu attach -t braid_sim             # attach byobu session (useful for --headless)
 ```
