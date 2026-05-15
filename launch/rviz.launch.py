@@ -11,6 +11,7 @@ Usage:
     ros2 launch px4_braid_mpc rviz.launch.py
 """
 
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -21,8 +22,9 @@ from launch import LaunchDescription
 
 
 def generate_launch_description() -> LaunchDescription:
+
+    # Get path to package share and read sim params
     pkg_share = Path(get_package_share_directory("px4_braid_mpc"))
-    rviz_config = pkg_share / "config" / "config.rviz"
     with open(pkg_share / "config" / "sim_params.yaml", "r", encoding="utf-8") as f:
         params: dict = yaml.safe_load(f)
 
@@ -57,6 +59,9 @@ def generate_launch_description() -> LaunchDescription:
         )
     )
 
+    # Patch rviz config to use the correct topic names
+    rviz_config = generate_rviz_config(pkg_share, namespaces)
+
     # RViz
     actions.append(
         Node(
@@ -70,3 +75,38 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     return LaunchDescription(actions)
+
+
+def generate_rviz_config(pkg_share: Path, namespaces: list[str]) -> str:
+    """
+    Assemble the final rviz config from `config.rviz` and `agent.rviz`,
+    using namespaces from `sim_params.yaml`.
+
+    Args:
+        pkg_share (Path): path to the package share directory.
+        namespaces (list[str]): list of namespaces to visualize.
+
+    Returns:
+        str: path to a temp config file.
+    """
+    # Read base config
+    with open(pkg_share / "config" / "config.rviz", "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+
+    # Read per-agent template (for placeholder substitution)
+    with open(pkg_share / "config" / "agent.rviz", "r", encoding="utf-8") as f:
+        agent_tmpl = f.read()
+
+    # For each namespace, render the template and append the resulting displays to the
+    # base config's Displays list.
+    displays = config["Visualization Manager"]["Displays"]
+    for ns in namespaces:
+        rendered = agent_tmpl.replace("__NS__", ns)
+        displays.extend(yaml.safe_load(rendered))
+
+    # write to a temp config file and return its path
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".rviz", delete=False, prefix="braid_mpc_"
+    ) as tmp:
+        yaml.safe_dump(config, tmp, sort_keys=False)
+        return tmp.name
