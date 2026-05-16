@@ -1,9 +1,9 @@
 from typing import Sequence
 
 import numpy as np
-from builtin_interfaces.msg import Duration
-from geometry_msgs.msg import Quaternion, Transform, Twist, Vector3
-from rclpy.publisher import Publisher
+from builtin_interfaces.msg import Duration, Time
+from geometry_msgs.msg import PoseStamped, Quaternion, Transform, Twist, Vector3
+from nav_msgs.msg import Path
 from std_msgs.msg import Header
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 
@@ -14,7 +14,8 @@ def build_trajectory_message(
     frame_id: str = "map",
     stamp=None,
 ) -> MultiDOFJointTrajectory:
-    """Build a MultiDOFJointTrajectory from a numpy array.
+    """
+    Build a MultiDOFJointTrajectory from a numpy array.
 
     Args:
         trajectory: shape (N+1, 13) or (N+1, 16).
@@ -104,28 +105,28 @@ def build_trajectory_message(
     return msg
 
 
-def publish_trajectories(
-    trajectories: list[np.ndarray],
-    times: Sequence[float] | float,
-    namespaces: Sequence[str],
-    publishers: dict[str, Publisher],
-):
+def build_path_messages(
+    trajectory: np.ndarray, frame_id: str = "map", clock: Time = None
+) -> Path:
     """
-    Publish the trajectories to the corresponding publishers.
+    Build a Path message from a numpy array.
 
     Args:
-        trajectories (list[np.ndarray]): list of N+1 x 13 or N+1 x 16 numpy arrays,
-            one per robot.
-        namespaces (Sequence[str]): list of robot namespaces, one per robot.
-        publishers (dict[str, Publisher]): dict mapping each namespace to the
-            corresponding Publisher for that robot.
+        trajectory: shape (N+1, 13) or (N+1, 16).
+        frame_id: reference frame for the path.
 
     Returns:
-        None
+        Path message ready to publish. Only the pose information (x, y, z,), which is
+        expressed in the global ENU frame, is used to build the Path message; attitude,
+        velocities, and controls are ignored.
     """
-    for i, ns in enumerate(namespaces):
-        trajectory: MultiDOFJointTrajectory = build_trajectory_message(
-            trajectory=trajectories[i],
-            times=times,
-        )
-        publishers[ns].publish(trajectory)
+    path_msg: Path = Path()
+    for h in range(trajectory.shape[0]):
+        pose_msg: PoseStamped = PoseStamped()
+        pose_msg.header.stamp = clock
+        pose_msg.header.frame_id = frame_id
+        pose_msg.pose.position.x = float(trajectory[h, 0])
+        pose_msg.pose.position.y = float(trajectory[h, 1])
+        pose_msg.pose.position.z = float(trajectory[h, 2])
+        path_msg.poses.append(pose_msg)
+    return path_msg

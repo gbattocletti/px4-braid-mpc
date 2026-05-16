@@ -6,15 +6,11 @@ from functools import partial
 from pathlib import Path as FilePath
 
 import numpy as np
+import rclpy
 import yaml
 from ament_index_python import get_package_share_directory
 from nav_msgs.msg import Path
-from px4_msgs.msg import (
-    VehicleAngularVelocity,
-    VehicleAttitude,
-    VehicleLocalPosition,
-    VehicleStatus,
-)
+from px4_msgs.msg import VehicleLocalPosition, VehicleStatus
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from rclpy.qos import (
@@ -38,7 +34,7 @@ class BraidMPC(Node):
     of the robots. The trajectories are then tracked by a PX4-MPC node running for each
     robot, which then sends the control commands to the PX4-FMU nodes for execution.
 
-    NOTE: the braid MPC algorithm is designed to be implemented with a distributed
+    Note: the braid MPC algorithm is designed to be implemented with a distributed
     scheme. For simplicity, in the current implementation all the 3 braid MPC
     controllers are run within the same node. This allows to reduce the number of topics
     and the amount of inter-node communication. However, we highlight that the
@@ -58,29 +54,43 @@ class BraidMPC(Node):
         self.namespaces: list[str]
 
         # Publishers and listeners
-        # TODO: check what topics are actually used and remove the unnecessary ones
-        # (also remove the corresponding subscribers below)
         self.reference_traj_pub: dict[str, Publisher] = {}
         self.reference_path_pub: dict[str, Publisher] = {}
-        self.sub_status: dict[str, Subscription] = {}  # CHECKME: which are useless?
-        self.sub_status_v1: dict[str, Subscription] = {}  # CHECKME: needed?
-        self.sub_status_v2: dict[str, Subscription] = {}  # CHECKME: needed?
-        self.sub_status_v4: dict[str, Subscription] = {}  # CHECKME: needed?
-        self.sub_position: dict[str, Subscription] = {}  # CHECKME: needed?
-        self.sub_position_v1: dict[str, Subscription] = {}  # CHECKME: needed?
-        self.sub_attitude: dict[str, Subscription] = {}
-        self.sub_ang_vel: dict[str, Subscription] = {}
+        self.sub_status: dict[str, Subscription] = {}
+        self.sub_status_v1: dict[str, Subscription] = {}
+        self.sub_status_v2: dict[str, Subscription] = {}
+        self.sub_status_v4: dict[str, Subscription] = {}
+        self.sub_position: dict[str, Subscription] = {}
+        self.sub_position_v1: dict[str, Subscription] = {}
 
         # Data structures for state measurements
-        self.status: dict[str, VehicleStatus] = {}
-        self.position: dict[str, VehicleLocalPosition] = {}
-        self.attitude: dict[str, VehicleAttitude] = {}
-        self.angular_velocity: dict[str, VehicleAngularVelocity] = {}
+        self.status_timestamp: dict[str, float] = {}
+        self.status_nav_state: dict[str, int] = {
+            ns: VehicleStatus.NAVIGATION_STATE_MAX for ns in self.namespaces
+        }
+        self.status_arm_state: dict[str, int] = {ns: 0 for ns in self.namespaces}
+        self.position_timestamp: dict[str, float] = {
+            ns: -np.inf for ns in self.namespaces
+        }
+        self.position: dict[str, np.ndarray] = {
+            ns: np.zeros(3, dtype=np.float32) for ns in self.namespaces
+        }
+        self.velocity: dict[str, np.ndarray] = {
+            ns: np.zeros(3, dtype=np.float32) for ns in self.namespaces
+        }
 
         # Braid MPC settings
         # TODO: consider storing settings in config file
         self.dt = 0.2
         self.N = 20
+
+        # TODO: extract from px4-mpc
+        self.dt_px4_mpc = 0.1
+        self.N_px4_mpc = 10
+
+        # Initialize timer for main control loop
+        timer_period = 0.1  # seconds
+        self.timer = self.create_timer(timer_period, self._control_step_callback)
 
         # Load data from yaml file
         pkg_share = FilePath(get_package_share_directory("px4_braid_mpc"))
@@ -105,8 +115,6 @@ class BraidMPC(Node):
         # Create listeners and publishers for state measurements and trajectories
         # NOTE: topic names are defined as absolute paths with a leading slash since the
         # robot name is already prepended to the topic name.
-        self.subscribers = {}
-        self.reference_traj_pub = {}
         for ns in self.namespaces:
             # Create trajectory publisher for MPC reference trajectory
             self.reference_traj_pub[ns] = self.create_publisher(
@@ -164,20 +172,8 @@ class BraidMPC(Node):
                 partial(self._position_callback, ns),
                 qos_profile_sub,
             )
-            self.sub_attitude[ns] = self.create_subscription(
-                VehicleAttitude,
-                f"/{ns}/fmu/out/vehicle_attitude",
-                partial(self._attitude_callback, ns),
-                qos_profile_sub,
-            )
-            self.sub_ang_vel[ns] = self.create_subscription(
-                VehicleAngularVelocity,
-                f"/{ns}/fmu/out/vehicle_angular_velocity",
-                partial(self._ang_vel_callback, ns),
-                qos_profile_sub,
-            )
 
-    def step_callback(self):
+    def _control_step_callback(self):
         """
         Performs one iteration of the MPC loop, which includes the following steps:
             1. Read current state of each robot (e.g. from /odom topic)
@@ -197,6 +193,10 @@ class BraidMPC(Node):
         Returns:
             None
         """
+        # Check data validity
+        if not self._check_data_validity():
+            return
+
         # TODO: complete implementation
         trajectories = [np.zeros((10, 13)) for _ in self.namespaces]  # dummy trajectory
 
@@ -206,36 +206,110 @@ class BraidMPC(Node):
             interpolation.interpolate_trajectory(
                 trajectory=trajectories[i],
                 timestep=self.dt,
-                target_horizon=10,  # TODO: extract from px4-mpc
-                target_timestep=0.1,  # TODO: extract from px4-mpc
+                target_horizon=self.N_px4_mpc,
+                target_timestep=self.dt_px4_mpc,
             )
             for i, _ in enumerate(self.namespaces)
         ]
 
-        # 8b. publish trajectory
-        messages.publish_trajectories(
-            trajectories=interpolated_trajectories,
-            times=0.1,
-            namespaces=self.namespaces,
-            publishers=self.reference_traj_pub,
-        )
+        # 8b. publish reference trajectories to px4-mpc and reference paths to rviz
+        for i, ns in enumerate(self.namespaces):
+
+            # Build messages from trajectory of i-th robot
+            reference_traj_msg: MultiDOFJointTrajectory = (
+                messages.build_trajectory_message(
+                    trajectory=trajectories[i],
+                    times=self.dt_px4_mpc,  # CHECKME
+                )
+            )
+            reference_path_msg: Path = messages.build_path_messages(
+                trajectory=interpolated_trajectories[i],
+                clock=self.get_clock().now().to_msg(),
+            )
+
+            # Publish messages
+            self.reference_traj_pub[ns].publish(reference_traj_msg)
+            self.reference_path_pub[ns].publish(reference_path_msg)
 
     def _status_callback(self, ns: str, msg: VehicleStatus) -> None:
-        # TODO: implement
-        # self.status[ns] = msg
-        pass
+        """
+        Callback function for handling status messages from each robot.
+
+        Args:
+            ns (str): Namespace of the robot.
+            msg (VehicleStatus): Status message from the robot.
+
+        Note: the callback is copied from that defined in the mpc_spacecraft node of the
+        px4_mpc package, with minor modifications.
+        """
+        self.status_timestamp[ns] = self.get_clock().now().nanoseconds / 1e9
+        self.status_nav_state[ns] = msg.nav_state
+        self.status_arm_state[ns] = msg.arming_state
 
     def _position_callback(self, ns: str, msg: VehicleLocalPosition) -> None:
-        # TODO: implement
-        # self.position[ns] = msg
-        pass
+        """
+        Position callback function for handling local position messages from each robot.
 
-    def _attitude_callback(self, ns: str, msg: VehicleAttitude) -> None:
-        # TODO: implement
-        # self.attitude[ns] = msg
-        pass
+        Args:
+            ns (str): Namespace of the robot.
+            msg (VehicleLocalPosition): Local position message from the robot, which
+                includes both position and linear velocity in the local frame.
 
-    def _ang_vel_callback(self, ns: str, msg: VehicleAngularVelocity) -> None:
-        # TODO: implement
-        # self.angular_velocity[ns] = msg
-        pass
+        Note: the callback is copied from that defined in the mpc_spacecraft node of the
+        px4_mpc package, with minor modifications.
+        Note: the callback performs a NED to ENU transformation, since the local
+        position messages from the fmu is expressed in a NED frame, while the MPC
+        controller works with a global ENU frame.
+        """
+        self.position_timestamp[ns] = self.get_clock().now().nanoseconds / 1e9
+        self.position[ns][0] = msg.y
+        self.position[ns][1] = msg.x
+        self.position[ns][2] = -msg.z
+        self.velocity[ns][0] = msg.vy
+        self.velocity[ns][1] = msg.vx
+        self.velocity[ns][2] = -msg.vz
+
+    def _check_data_validity(self) -> bool:
+        """
+        Check that the robots' status and position data are recent enough to be used for
+        trajectory planning. The method is adapted from SpacecraftMPC node in px4-mpc.
+        """
+        # Define thresholds for data validity (in seconds)
+        DATA_VALIDITY_STREAM = 0.5
+        DATA_VALIDITY_STATUS = 2.0
+
+        # Initialize default return data
+        data_is_valid = True
+
+        # Check if the data is valid based on the timestamps
+        current_time = self.get_clock().now().nanoseconds / 1e9
+        for ns in self.namespaces:
+            if current_time - self.position_timestamp[ns] > DATA_VALIDITY_STREAM:
+                self.get_logger().warn(
+                    "Vehicle position data is too old. Skipping trajectory planning."
+                )
+                data_is_valid = False
+            if current_time - self.status_timestamp[ns] > DATA_VALIDITY_STATUS:
+                self.get_logger().warn(
+                    f"Vehicle status for robot {ns} is too old. "
+                    "Skipping trajectory planning."
+                )
+                data_is_valid = False
+
+        return data_is_valid
+
+
+# Node entry point when executed directly
+def main(args=None):
+    rclpy.init(args=args)
+
+    spacecraft_mpc = BraidMPC()
+
+    rclpy.spin(spacecraft_mpc)
+
+    spacecraft_mpc.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
