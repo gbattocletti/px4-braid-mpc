@@ -20,6 +20,7 @@ from rclpy.qos import (
     QoSReliabilityPolicy,
 )
 from rclpy.subscription import Subscription
+from std_srvs.srv import Trigger
 from trajectory_msgs.msg import MultiDOFJointTrajectory
 
 import px4_braid_mpc.messages as messages
@@ -84,12 +85,14 @@ class BraidMPC(Node):
         self.dt = 0.2
         self.N = 20
 
-        # TODO: extract from px4-mpc
-        self.dt_px4_mpc = 0.1
-        self.N_px4_mpc = 10
+        # Settings for the PX4-MPC nodes
+        # NOTE: data copied from the SpacecraftWrenchMPC class in the
+        # px4_mpc/controllers/spacecraft_wrench_mpc.py file of the px4-mpc package.
+        self.dt_px4_mpc = 5.0 / 29
+        self.N_px4_mpc = 30
 
         # Initialize timer for main control loop
-        timer_period = 0.1  # seconds
+        timer_period = 0.2  # seconds
         self.timer = self.create_timer(timer_period, self._control_step_callback)
 
         # Load data from yaml file
@@ -173,6 +176,22 @@ class BraidMPC(Node):
                 qos_profile_sub,
             )
 
+        # Gate flag (must be True to publish the reference trajectories)
+        self.publishing_enabled = False
+
+        # Advertise the trigger service
+        self.start_service = self.create_service(
+            Trigger,
+            "~/start",  # ~/ makes it namespace-relative: /high_level_controller/start
+            self._start_callback,
+        )
+
+        # Print initialization completion message
+        self.get_logger().info(
+            "High-level controller ready. "
+            "Call /high_level_controller/start to begin publishing."
+        )
+
     def _control_step_callback(self):
         """
         Performs one iteration of the MPC loop, which includes the following steps:
@@ -195,6 +214,13 @@ class BraidMPC(Node):
         """
         # Check data validity
         if not self._check_data_validity():
+            return
+        elif not self.publishing_enabled:
+            self.get_logger().info(
+                "Data is valid but publishing is not enabled. Waiting for user to "
+                "trigger the start service "
+                "(ros2 service call /high_level_controller/start std_srvs/srv/Trigger)."
+            )
             return
 
         # TODO: complete implementation
@@ -297,6 +323,33 @@ class BraidMPC(Node):
                 data_is_valid = False
 
         return data_is_valid
+
+    def _start_callback(
+        self, _: Trigger.Request, response: Trigger.Response
+    ) -> Trigger.Response:
+        """
+        Callback function for the start service. Sets the gate flag to True, allowing
+        the reference trajectories to be published in the control loop.
+
+        To trigger the service, run the following command in the terminal:
+            ros2 service call /high_level_controller/start std_srvs/srv/Trigger
+
+        Args:
+            request (Trigger.Request): Service request (not used).
+            response (Trigger.Response): Service response, with success flag <- True.
+
+        Returns:
+            Trigger.Response: Service response with success flag set to True.
+        """
+        if self.publishing_enabled:
+            response.success = False
+            response.message = "Already publishing."
+        else:
+            self.publishing_enabled = True
+            response.success = True
+            response.message = "Trajectory publishing started."
+            self.get_logger().info("Received start command. Publishing enabled.")
+        return response
 
 
 # Node entry point when executed directly
