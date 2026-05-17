@@ -1,5 +1,9 @@
 # Simulation of a braid MPC controller on a set of ATMOS robots
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+![Python 3.10](https://img.shields.io/badge/python-3.10-green.svg)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 Simulation of the [MPC-based distributed braid controller](https://github.com/gbattocletti/braid-controller) on a multi-agent space-based tethered robot system. The simulation is based on the [DISCOWER ATMOS](https://atmos.discower.io/) platform, which is also used for the real-world experiments.
 
 
