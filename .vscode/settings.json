@@ -1,3 +1,7 @@
 {
-    "python.analysis.extraPaths": ["./external/px4-launch"]
+    "python.analysis.extraPaths": [
+        "./external/px4-launch",
+        "./external/braid-controller"
+    ],
+    "python.defaultInterpreterPath": "/usr/bin/python3"
 }
