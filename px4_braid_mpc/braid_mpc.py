@@ -9,6 +9,10 @@ import numpy as np
 import rclpy
 import yaml
 from ament_index_python import get_package_share_directory
+from braid_controller.core.agent import Agent
+from braid_controller.core.mpc_distributed import DistributedMPC
+from braid_controller.utils import invariants
+from main import DT
 from nav_msgs.msg import Path
 from px4_msgs.msg import VehicleLocalPosition, VehicleStatus
 from rclpy.node import Node
@@ -19,7 +23,9 @@ from rclpy.qos import (
     QoSProfile,
     QoSReliabilityPolicy,
 )
+from rclpy.service import Service
 from rclpy.subscription import Subscription
+from rclpy.timer import Timer
 from std_srvs.srv import Trigger
 from trajectory_msgs.msg import MultiDOFJointTrajectory
 
@@ -50,11 +56,33 @@ class BraidMPC(Node):
     def __init__(self):
         super().__init__("braid_mpc")
 
-        # Parameters and namespaces
-        self.params: dict
-        self.namespaces: list[str]
+        ### LOAD SIMULATION DATA #######################################################
+        # Simulation parameters
+        self.params: dict  # general simulation parameters
+        self.specification: dict  # parameters related to topological specification
+        self.namespaces: list[str]  # list of namespaces of the robots
 
-        # Publishers and listeners
+        # Load data from yaml file
+        pkg_share = FilePath(get_package_share_directory("px4_braid_mpc"))
+        with open(pkg_share / "config" / "sim_params.yaml", "r", encoding="utf-8") as f:
+            self.params = yaml.safe_load(f)
+        with open(
+            pkg_share / "config" / self.params["specification"], "r", encoding="utf-8"
+        ) as f:
+            self.specification = yaml.safe_load(f)
+
+        # Extract information from the loaded parameters
+        self.namespaces = self.params["namespaces"]
+        self.m = self.specification["m"]  # number of robots
+        if self.m != len(self.namespaces):
+            raise ValueError(
+                f"Number of robots in the specification (m={self.specification['m']}) "
+                f"does not match the number of namespaces defined in the parameters "
+                f"(namespaces={self.params['namespaces']})."
+            )
+
+        ### CREATE PUBLISHERS AND SUBSCRIBERS ##########################################
+        # Initialize publishers and listeners dictionaries
         self.reference_traj_pub: dict[str, Publisher] = {}
         self.reference_path_pub: dict[str, Publisher] = {}
         self.sub_status: dict[str, Subscription] = {}
@@ -64,51 +92,14 @@ class BraidMPC(Node):
         self.sub_position: dict[str, Subscription] = {}
         self.sub_position_v1: dict[str, Subscription] = {}
 
-        # Data structures for state measurements
-        self.status_timestamp: dict[str, float] = {}
-        self.status_nav_state: dict[str, int] = {
-            ns: VehicleStatus.NAVIGATION_STATE_MAX for ns in self.namespaces
-        }
-        self.status_arm_state: dict[str, int] = {ns: 0 for ns in self.namespaces}
-        self.position_timestamp: dict[str, float] = {
-            ns: -np.inf for ns in self.namespaces
-        }
-        self.position: dict[str, np.ndarray] = {
-            ns: np.zeros(3, dtype=np.float32) for ns in self.namespaces
-        }
-        self.velocity: dict[str, np.ndarray] = {
-            ns: np.zeros(3, dtype=np.float32) for ns in self.namespaces
-        }
-
-        # Braid MPC settings
-        # TODO: consider storing settings in config file
-        self.dt = 0.2
-        self.N = 20
-
-        # Settings for the PX4-MPC nodes
-        # NOTE: data copied from the SpacecraftWrenchMPC class in the
-        # px4_mpc/controllers/spacecraft_wrench_mpc.py file of the px4-mpc package.
-        self.dt_px4_mpc = 5.0 / 29
-        self.N_px4_mpc = 30
-
-        # Initialize timer for main control loop
-        timer_period = 0.2  # seconds
-        self.timer = self.create_timer(timer_period, self._control_step_callback)
-
-        # Load data from yaml file
-        pkg_share = FilePath(get_package_share_directory("px4_braid_mpc"))
-        with open(pkg_share / "config" / "sim_params.yaml", "r", encoding="utf-8") as f:
-            self.params = yaml.safe_load(f)
-        self.namespaces = self.params["namespaces"]
-
         # Define Quality of Service profiles for publishers and subscribers
-        qos_profile_pub = QoSProfile(
+        qos_profile_pub: QoSProfile = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=0,
         )
-        qos_profile_sub = QoSProfile(
+        qos_profile_sub: QoSProfile = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             durability=QoSDurabilityPolicy.VOLATILE,
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -176,11 +167,82 @@ class BraidMPC(Node):
                 qos_profile_sub,
             )
 
+        # Initialize data structures for state measurements
+        self.status_timestamp: dict[str, float] = {}
+        self.status_nav_state: dict[str, int] = {
+            ns: VehicleStatus.NAVIGATION_STATE_MAX for ns in self.namespaces
+        }
+        self.status_arm_state: dict[str, int] = {ns: 0 for ns in self.namespaces}
+        self.position_timestamp: dict[str, float] = {
+            ns: -np.inf for ns in self.namespaces
+        }
+        self.position: dict[str, np.ndarray] = {
+            ns: np.zeros(3, dtype=np.float32) for ns in self.namespaces
+        }
+        self.velocity: dict[str, np.ndarray] = {
+            ns: np.zeros(3, dtype=np.float32) for ns in self.namespaces
+        }
+
+        ### SETUP AGENTS and CONTROLLER ################################################
+        # Create agents
+        self.M: list[Agent] = [Agent(i) for i in range(self.m)]
+        for agent in self.M:
+            agent.dt = DT
+            agent.x = 0  # TODO
+            agent.x_goal = 0  # TODO
+            agent.x_opt = 0  # TODO
+            agent.u_opt = 0  # TODO
+            agent.t_sol = np.inf
+            agent.cost = np.inf
+            agent.cost_g = np.inf
+            agent.cost_u = np.inf
+            agent.cost_w = np.inf
+
+        # Create distributed braid MPC controller
+        self.controller: DistributedMPC = DistributedMPC(dynamics="single_integrator")
+        self.controller.m = self.m
+        self.controller.dt = self.params["dt"]  # timestep of braid MPC
+        self.controller.K = self.params["N"]  # horizon of braid MPC
+        self.controller.alpha_u = self.params["alpha_u"]  # weight for control cost
+        self.controller.w_epsilon = self.params["w_epsilon"]  # winding constraint
+        self.controller.d_min = self.params["d_min"]  # minimum safety distance
+        self.controller.x_min = np.array(
+            [
+                self.params["x_lims"][0],
+                self.params["y_lims"][0],
+            ]
+        )
+        self.controller.x_max = np.array(
+            [
+                self.params["x_lims"][1],
+                self.params["y_lims"][1],
+            ]
+        )
+        # TODO: update values! Also, check if worth adding rate constraint
+        self.controller.u_min = np.array([-1, -1])  # u is a vector [v_x, v_y]
+        self.controller.u_max = np.array([1, 1])
+        self.controller.R = np.diag([1, 1])
+        self.controller.initialize_ocp()
+
+        # Other parameters for braid MPC controller
+        self.alpha_g: float = self.params["alpha_g"]  # weight for progress cost
+        self.alpha_exp: float = self.params["alpha_exp"]  # exponent for goal weight
+        self.alpha_w: float = self.params["alpha_w"]  # weight for winding cost
+        self.consensus: str = self.params["consensus"]  # consensus type for tau
+
+        # TODO: continue controller initialization
+
+        # Settings for the PX4-MPC nodes
+        # NOTE: data copied from the SpacecraftWrenchMPC class in the
+        # px4_mpc/controllers/spacecraft_wrench_mpc.py file of the px4-mpc package.
+        self.dt_px4_mpc: float = 5.0 / 29
+        self.N_px4_mpc: int = 30
+
         # Gate flag (must be True to publish the reference trajectories)
-        self.publishing_enabled = False
+        self.publishing_enabled: bool = False
 
         # Advertise the trigger service
-        self.start_service = self.create_service(
+        self.start_service: Service = self.create_service(
             Trigger,
             "~/start",  # ~/ makes it namespace-relative: /high_level_controller/start
             self._start_callback,
@@ -190,6 +252,28 @@ class BraidMPC(Node):
         self.get_logger().info(
             "High-level controller ready. "
             "Call /high_level_controller/start to begin publishing."
+        )
+
+        ### PREPROCESS TOPOLOGICAL SPECIFICATION #######################################
+        # TODO: consider moving to dedicated method
+        self.grids: np.ndarray = self.specification["grids"]
+        self.n_generators: int = self.grids.shape[0]
+
+        # Compute target winding numbers
+        paths = invariants.grids2paths(self.grids)
+        self.w_target: np.ndarray = invariants.paths2windings(
+            paths,
+            upscale_factor=1000,
+            intermediate_shape="linear",
+        )  # (n_generators * upscale_factor, m, m)
+        self.n_windings: int = self.w_target.shape[0]  # length of w_target
+
+        ### CREATE MAIN CONTROL CALLBACK ###############################################
+        # Initialize timer for main control loop
+        timer_period: float = 0.2  # seconds
+        self.timer: Timer = self.create_timer(
+            timer_period,
+            self._control_step_callback,
         )
 
     def _control_step_callback(self):
@@ -231,7 +315,7 @@ class BraidMPC(Node):
         interpolated_trajectories = [
             interpolation.interpolate_trajectory(
                 trajectory=trajectories[i],
-                timestep=self.dt,
+                timestep=self.controller.dt,
                 target_horizon=self.N_px4_mpc,
                 target_timestep=self.dt_px4_mpc,
             )
