@@ -6,17 +6,41 @@ namespaces:
   - atmos_2
   - atmos_3
 
+# Environment size
+# TODO: update
+x_lims: [0.0, 10.0]
+y_lims: [0.0, 10.0]
+
+# Number of agents
+m: 3
+
+# Topological specification to follow
+specification: "specification_m3_1.yaml"
+
 # Initial and final poses [x, y, z, roll, pitch, yaw] in metres / radians
+# TODO: move initial and final states to specification. 
+# TODO: load initial condition from the specification  also in the launcher files 
+# (check which). A io helper method is probably a good idea
+# TODO: if initial and final conditions are moved to specification, they should be lists 
+# and not keyed directly with names, as that makes it harder to change the names
+# CHECKME: the initial and final conditions must match those of the specification!
 initial_states:
   atmos_1: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   atmos_2: [2.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   atmos_3: [3.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-# goal_states:
-  # atmos_1: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  # atmos_2: [2.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  # atmos_3: [3.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+goal_states:
+  atmos_1: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  atmos_2: [2.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  atmos_3: [3.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-# High-level controller dummy parameters.
+# High-level controller parameters
 braid_mpc:
-  publish_rate_hz: 1.0
-  hover_z: 1.0  # dummy entry -- hover initial location
+  dt: 0.2
+  N: 20
+  consensus: "mean"  # {min, mean, median}
+  alpha_u: 0.01
+  alpha_g: 0.1
+  alpha_exp: 30
+  alpha_w: 1e3
+  w_epsilon: 1  # winding error constraint (>0)
+  d_min: 1  # safety distance (>0)

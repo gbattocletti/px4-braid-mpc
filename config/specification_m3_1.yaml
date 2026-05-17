@@ -1,0 +1,79 @@
+# Grids-based specification for 3 robots
+
+# initial locations
+# TODO: update or remove (best would be to just use the initial condition of the robots)
+# TODO: extend to 6 elements (or 3 if attitude can be left free)
+x_init: 
+    [
+        [8.0, 4.0],
+        [2.0, 2.0],
+        [5.0, 8.0]
+    ]
+
+# goal locations
+x_goal: 
+    [
+        [8.0, 4.0],
+        [2.0, 2.0],
+        [5.0, 8.0]
+    ]
+
+# grid specification
+grids: 
+    [
+        [
+            [0, 3, 0],
+            [0, 0, 1],
+            [2, 0, 0]
+        ],
+        [
+            [0, 3, 0],
+            [2, 0, 0],
+            [0, 0, 1]
+        ],
+        [
+            [2, 0, 0],
+            [0, 3, 0],
+            [0, 0, 1]
+        ],
+        [
+            [0, 2, 0],
+            [3, 0, 0],
+            [0, 0, 1]
+        ],
+        [
+            [0, 0, 2],
+            [3, 0, 0],
+            [0, 1, 0]
+        ],
+        [
+            [0, 0, 2],
+            [0, 3, 0],
+            [1, 0, 0]
+        ],
+        [
+            [0, 3, 0],
+            [0, 0, 2],
+            [1, 0, 0]
+        ],
+        [
+            [0, 3, 0],
+            [1, 0, 0],
+            [0, 0, 2]
+        ],
+        [
+            [0, 0, 3],
+            [1, 0, 0],
+            [0, 2, 0]
+        ],
+        [
+            [0, 0, 3],
+            [0, 1, 0],
+            [2, 0, 0]
+        ],
+        [
+            [0, 3, 0],
+            [0, 0, 1],
+            [2, 0, 0]
+        ]
+    ]
